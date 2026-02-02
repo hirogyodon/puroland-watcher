@@ -1,0 +1,20 @@
+name: Puroland Notion Watcher
+
+on:
+  schedule:
+    - cron: "5 15 * * *"  # JST 00:05
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
+      - run: pip install requests
+      - run: python purocheck.py
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_DB: ${{ secrets.NOTION_DB }}

@@ -1,17 +1,22 @@
-import requests, re, os
+from playwright.sync_api import sync_playwright
+import os, requests
 
-URL = "https://www.puroland.jp/greeting/charaguri_residence/"
 NOTION_TOKEN = os.environ["NOTION_TOKEN"]
 DB_ID = os.environ["NOTION_DB"]
 
-# 一番下の日付を取得
-html = requests.get(URL).text
-dates = re.findall(r'<option[^>]*value="(\d+)"', html)
-date = dates[-1]
+with sync_playwright() as p:
+    browser = p.chromium.launch()
+    page = browser.new_page()
+    page.goto("https://www.puroland.jp/greeting/charaguri_residence/")
 
-# その日付のページを取得
-html2 = requests.get(URL + "?date=" + date).text
-names = re.findall(r'p-greeting-residence__name">([^<]+)', html2)
+    # 一番下のoptionを選択
+    page.select_option("select", index=-1)
+    page.wait_for_timeout(1500)
+
+    names = page.locator(".p-greeting-residence__name").all_text_contents()
+    date = page.locator("select option:checked").get_attribute("value")
+
+    browser.close()
 
 # Notionへ保存
 url = "https://api.notion.com/v1/pages"
@@ -20,17 +25,11 @@ headers = {
     "Notion-Version": "2022-06-28",
     "Content-Type": "application/json"
 }
-
 payload = {
     "parent": {"database_id": DB_ID},
     "properties": {
-        "日付": {
-            "title": [{"text": {"content": date}}]
-        },
-        "キャラクター": {
-            "rich_text": [{"text": {"content": " / ".join(names)}}]
-        }
+        "日付": {"title": [{"text": {"content": date}}]},
+        "キャラクター": {"rich_text": [{"text": {"content": " / ".join(names)}}]}
     }
 }
-
 requests.post(url, headers=headers, json=payload)

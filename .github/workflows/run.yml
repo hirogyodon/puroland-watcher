@@ -16,9 +16,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install deps
-        run: |
-          pip install requests playwright
-          playwright install chromium
+        run: pip install requests
 
       - name: Run
         run: python purocheck.py
